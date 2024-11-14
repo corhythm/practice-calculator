@@ -64,6 +64,68 @@
 4. 그러니 다른 고정된 정수 타입과 달리 `BigInteger`는 값의 크기에 제한이 없기에 정수 타입에서 볼 수 있는 정밀도 손실이나 오버플로우 문제가 없음
 5. 단, 고정 크기 정수보다 연산 속도는 느림. 그러나 안정적임.
 
-# Covariance & ContraVariance (feat. Wildcard)
+## 공변성(Covariance) & 반공변성(ContraVariance) (feat. Wildcard)
+* 공변: B가 A의 하위 타입 -> B[]도 A[]의 하위 타입임.
+* 반공변: B가 A의 하위 타입 -> A[]는 B[]의 하위 타입 (뭔솔?)
+
+공변... 말이 어려움. Co-Variance의 합성어인데, Co는 '-같이'라는 의미를 지니고 있는 접두어이고, 'Variance'는 'Vary'의 명사형으로 'Vary'는 변화라는 의미를 담고 있음.
+즉, Covariance는 '같은 방향으로 변화'한다는 의미이며, 반공변성은 반대로 변화한다는 의미로 받아들이면 됨.
+
+공변과 반공변의 차이점은 '데이터 READ/WRITE' 관점에서 발생한다.
+공변: 읽기(Read) 관점 / 반공변: 쓰기(WRITE) 관점
+```java
+Number[] numArray = new Integer[3];  // Integer는 Number의 하위 타입
+numArray[0] = 1;                     // OK, Integer 값 추가 가능
+Number value = numArray[0];          // OK, Number로 읽기 가능
+```
+반공변은 상위 타입의 배열이 하위 타입의 배열로 간주된다는 의미. 이는 상위 타입의 데이터를 하위 타입에 안전하게 쓸(WRITE) 수 있다는 의미.
+단, 반공변은 자바 배열에서는 지원이 안 되고 *제네릭 와일드카드(Wildcard)에서 지원됨*
+```java
+List<? super Integer> list = new ArrayList<Number>();  // Number는 Integer의 상위 타입. 
+// '? super Integer>'의 의미는 리스트 타입으로 Integer 혹은 Integer의 상위 타입만 올 수 있다는 의미.
+list.add(10);  // OK: Integer 값을 안전하게 추가 가능. 즉 Integer 상위 타입이기만 하면 데이터 추가를 안심하고 할 수 있다.
+Object value = list.get(0);  // // 읽기는 Object 타입으로만 가능 (구체적인 타입 알 수 없음). 보통 읽기는 잘 안 하고 데이터 쓸 때만 사용
+```
+--> 공변은 하위 타입 관계가 유지되어, 데이터를 상위 타입으로 안전하게 읽을 수 있으며, 반공변은 상위 타입 관계가 반대로 적용되어 데이터를 하위 타입에 안전하게 쓸 수 있음.
+
+## 무공변성(Invariance)
+일반적으로 제네릭은 무공변성임. 즉 타입 간 상하관계가 없음.
+
+```java
+// 즉 Integer와 Number는 상하관계지만 아래처럼 사용하면 얘기가 다름
+List<Number> parent = new ArrayList<>();
+List<Integer> child = new ArrayList<>();
+
+parent = child; // !업캐스팅 불가
+child = parent; // !다운캐스팅 불가
+```
+`Number`와 `Integer`는 상하관계지만 `List<Number>`와 `List<Integer>`는 완전히 다른 타입이며 아무런 관계도 없음.
+이런 제네릭이라는 무공변성은 자바 특유의 객체 지향을 전혀 이용 못하게 함. 이를 해결하기 위한 기능, 즉 제네릭에 상하 타입 캐스팅을 가능하게 해주는 기능이 바로 위에서 언급한 `Wildcard(? extends / ? super)`임
+-> Wildcard: 제네릭의 기본 속성인 무공변성 때문에 상속 관계를 활용할 수 없는 상황에서, Wildcard를 이용해 상하 관계를 활용하기 위해 사용.
+
+* `? extends T(공변)`: T와 그 하위 타입만 허용
+```java
+List<? extends Number> list = new ArrayList<Integer>();  // OK
+Number value = list.get(0);  // 읽기 OK
+list.add(1);  // 컴파일 에러: 추가는 불가
+```
+* `? super T(반공변)`: T와 그 상위 타입만 허용
+```java
+List<? super Integer> list = new ArrayList<Number>();  // OK
+list.add(10);  // 추가 OK
+Object value = list.get(0);  // 읽기는 Object 타입으로 제한
+```
+제네릭과 공변성, 반공변성 개념은 아래 글이 훨씬 잘 작성되어 있다. (위에 글을 무시하자)
+
+https://inpa.tistory.com/entry/JAVA-%E2%98%95-%EC%A0%9C%EB%84%A4%EB%A6%AD-%EC%99%80%EC%9D%BC%EB%93%9C-%EC%B9%B4%EB%93%9C-extends-super-T-%EC%99%84%EB%B2%BD-%EC%9D%B4%ED%95%B4
+https://inpa.tistory.com/entry/JAVA-%E2%98%95-%EC%A0%9C%EB%84%A4%EB%A6%ADGenerics-%EA%B0%9C%EB%85%90-%EB%AC%B8%EB%B2%95-%EC%A0%95%EB%B3%B5%ED%95%98%EA%B8%B0
 
 
+---
+
+## 느낀점
+위와 같이 글을 작성하면서, 개인적으로 TIL 같은 글을 작성함으로서 지식을 정리하는 것에 대해 의문이 들었다. 물론 잘 활용하는 사람도 있겠지만 나 같은 경우는 모르는 내용을 검색 혹은 ChatGPT를 통해 단위 시간당 빠르게 정보를 습득하는 것을 선호한다. 물론 시간이 지나면 까먹는 경우가 많겠지만 그렇다고 내가 작성한 글로 돌아갈 것 같지는 않다. 나보다 좋은 정보를 제공하는 생산자가 너무나 많기 때문에 다시 보지 않을 글을 작성하는데 조금 회의적이다.
+
+보통 정보성 글을 작성한다고 하면, 내가 작성하고 있는 내용이 사실에 부합하는지 등을 체크를 해야 하고, 독자들을 고려해 어려운 개념을 쉽게 풀어야 한다. 물론 내가 배운 지식을 글로서 쉬운 언어로 표현한다는 점에서 유의미한 학습 효과가 있을 수도 있지만 다시 안 볼 가능성이 크다는 게 가장 디메리트한 부분이다.
+
+위에 작성한 내용을 내가 과연 다시 볼까? 마치, '나 이만큼 공부했어요'라며 자기 만족으로 글을 썼다는 느낌을 지울 수 없다. 바로 ChatGPT와 대화를 통해 지식을 구체화하는 게 더 빠른 건 아닐까?? 
